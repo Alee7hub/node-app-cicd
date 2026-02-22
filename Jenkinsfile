@@ -71,7 +71,7 @@ pipeline {
                             git status
                             git config --list
 
-                            git remote set-url origin https://\$GIT_USER:\$GIT_PASS@github.com/Alee7hub/node-app-cicd.git
+                            git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/Alee7hub/node-app-cicd.git
                             git add .
                             git commit -m "Increment version to ${env.NEW_VERSION}"
                             git push origin HEAD:main
