@@ -15,5 +15,3 @@ Make sure to download jest library before running test, otherwise jest command d
     npm install
 
 In order to see failing test, remove index.html or rename it and run tests.
-
-- Just for testing purpose
