@@ -1,0 +1,84 @@
+pipeline {
+    agent any
+    tools {
+        nodejs 'nodejs-25'
+    }
+
+    stages {
+        stage('Check commit author') {
+            steps {
+                script {
+                    def commitAuthor = sh(script: 'git log -1 --format="%an"', returnStdout: true).trim()
+                    if (commitAuthor == 'Jenkins CI') {
+                        currentBuild.result = 'NOT_BUILT'
+                        error('Skipping build: triggered by Jenkins CI version bump commit')
+                    }
+                }
+            }
+        }
+        stage('increment version') {
+            steps {
+                script {
+                    echo 'Incrementing version...'
+                    def packageJson = readJSON file: 'app/package.json'
+                    def version = packageJson.version
+                    def versionParts = version.tokenize('.')
+                    versionParts[1] = (versionParts[1].toInteger() + 1).toString()
+                    versionParts[2] = '0'
+                    def newVersion = versionParts.join('.')
+                    packageJson.version = newVersion
+                    writeJSON file: 'app/package.json', json: packageJson, pretty: 2
+                    env.NEW_VERSION = newVersion
+                    echo "Version incremented to ${newVersion}"
+                }
+            }
+        }
+        stage('Test') {
+            steps {
+                script {
+                    echo 'Running tests...'
+                    sh 'cd app && npm install && npm run test'
+                }
+            }
+        }
+        stage('Build docker image with incremented version') {
+            steps {
+                script {
+                    echo 'Building...'
+                    sh "docker build -t alikakavand/node-app-cicd:${env.NEW_VERSION} ."
+                }
+            }
+        }
+        stage('Push docker image to registry') {
+            steps {
+                script {
+                    echo 'Pushing...'
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                        sh 'echo $PASS | docker login -u $USER --password-stdin'
+                        sh "docker push alikakavand/node-app-cicd:${env.NEW_VERSION}"
+                    }
+                }
+            }
+        }
+        stage('commit version update to GitHub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                        sh """
+                            git config user.name "Jenkins CI"
+                            git config user.email "jenkins@example.com"
+                            
+                            git status
+                            git config --list
+
+                            git remote set-url origin https://\$GIT_USER:\$GIT_PASS@github.com/Alee7hub/node-app-cicd.git
+                            git add .
+                            git commit -m "Increment version to ${env.NEW_VERSION}"
+                            git push origin HEAD:main
+                        """
+                    }
+                }
+            }
+        }
+    }
+}
