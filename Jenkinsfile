@@ -63,14 +63,14 @@ pipeline {
         stage('commit version update to GitHub') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
                         sh 'git config user.name "Jenkins CI"'
                         sh 'git config user.email "jenkins@example.com"'
 
                         sh 'git status'
                         sh 'git config --list'
 
-                        sh "git remote set-url origin https://${USER}:${PASS}@github.com/Alee7hub/node-app-cicd.git"
+                        sh "git remote set-url origin https://\$GIT_USER:\$GIT_PASS@github.com/Alee7hub/node-app-cicd.git"
                         sh 'git add .'
                         sh "git commit -m \"CI: version bump to ${env.NEW_VERSION}\""
                         sh 'git push origin HEAD:main'
