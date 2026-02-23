@@ -5,18 +5,6 @@ pipeline {
     }
 
     stages {
-        stage('Check commit author') {
-            steps {
-                checkout scm
-                script {
-                    def commitAuthor = sh(script: 'git log -1 --format="%an"', returnStdout: true).trim()
-                    if (commitAuthor == 'Jenkins CI') {
-                        currentBuild.result = 'NOT_BUILT'
-                        error('Skipping build: triggered by Jenkins CI version bump commit')
-                    }
-                }
-            }
-        }
         stage('increment version') {
             steps {
                 script {
